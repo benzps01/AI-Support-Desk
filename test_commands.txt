@@ -1,0 +1,6 @@
+# Test Redis
+docker exec -it support_desk_redis redis-cli ping
+
+
+# Test Postgres
+docker exec -it support_desk_postgres pg_isready
