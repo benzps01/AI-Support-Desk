@@ -1,8 +1,8 @@
 """create_initial_tables
 
-Revision ID: 4ae42b2d989e
+Revision ID: 6ab9c5cf441f
 Revises: 
-Create Date: 2026-06-13 14:54:41.137622
+Create Date: 2026-06-14 00:16:28.051210
 
 """
 from typing import Sequence, Union
@@ -12,7 +12,7 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision: str = '4ae42b2d989e'
+revision: str = '6ab9c5cf441f'
 down_revision: Union[str, None] = None
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
@@ -50,7 +50,8 @@ def upgrade() -> None:
     sa.Column('priority', sa.String(), nullable=True),
     sa.Column('category', sa.String(), nullable=True),
     sa.Column('sentiment', sa.String(), nullable=True),
-    sa.Column('sla_due_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),
+    sa.Column('sla_due_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=True),
+    sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),
     sa.Column('updated_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),
     sa.Column('resolved_at', sa.DateTime(timezone=True), nullable=True),
     sa.ForeignKeyConstraint(['assigned_agent_id'], ['users.id'], ondelete='SET NULL'),

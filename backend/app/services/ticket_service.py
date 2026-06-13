@@ -41,7 +41,7 @@ class TicketService:
         if status_filter:
             filters.append(Ticket.status == status_filter)
 
-        query = select(Ticket).where(and_(*filters)).order_by(Ticket.created_ad.desc())
+        query = select(Ticket).where(and_(*filters)).order_by(Ticket.created_at.desc())
         result = await db.execute(query)
         return result.scalars().all()
 
