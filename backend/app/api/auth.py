@@ -41,6 +41,7 @@ async def register(request: RegisterRequest, db: AsyncSession = Depends(get_db))
 
     db.add(user)
     await db.commit() # this commit both org query and user query atomically
+    await db.refresh(user)
 
     access_token = create_jwt_token(
         data={"sub": str(user.id), "role": user.role, "org_id": str(user.org_id)},

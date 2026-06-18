@@ -7,14 +7,30 @@ const decodeToken = (token) => {
     try {
         const base64Url = token.split(".")[1];
         const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
-        const jsonPayload = decodeURIComponent(
-            atob(base64)
-                .split('')
-                .map((c) => '%' + ('00' + c.charAt(0).toString(16)).slice(-2))
-                .join('')
-        );
-        return JSON.parse(jsonPayload);
+
+        const pad = base64.length % 4;
+        const paddedBase64 = pad ? base64 + '='.repeat(4 - pad) : base64;
+
+        const binaryString = atob(paddedBase64);
+        const len = binaryString.length;
+
+        const bytes = new Uint8Array(len);
+        for (let i = 0; i < len; i++) {
+            bytes[i] = binaryString.charCodeAt(i);
+        }
+
+        const decoder = new TextDecoder("utf-8");
+        const jsonString = decoder.decode(bytes);
+
+        // const jsonPayload = decodeURIComponent(
+        //     atob(paddedBase64)
+        //         .split('')
+        //         .map((c) => '%' + ('00' + c.charAt(0).toString(16)).slice(-2))
+        //         .join('')
+        // );
+        return JSON.parse(jsonString);
     } catch (error) {
+        console.error("JWT Decode Error:", error)
         return null;
     }
 };
