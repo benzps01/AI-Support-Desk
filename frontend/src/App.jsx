@@ -5,12 +5,12 @@ import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
 import ProtectedRoute from './components/ProtectedRoute';
 import Login from './pages/Login';
 import Register from './pages/Register';
+import Tickets from './pages/Tickets'
+import TicketDetail from './pages/TicketDetail';
 
 function App() {
 
   const queryClient = new QueryClient();
-  const Tickets = () => <div>Tickets Page</div>
-  const TicketDetail = () => <div>Ticket Detail Page</div>
 
   return (
     <QueryClientProvider client={queryClient}>
