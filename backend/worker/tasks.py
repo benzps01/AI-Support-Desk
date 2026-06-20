@@ -3,6 +3,7 @@ import logging
 from worker.celery_app import celery_app
 from app.db import async_session_maker
 from app.models.ticket import Ticket
+from app.ai.classify import classify_ticket
 
 logger = logging.getLogger(__name__)
 
@@ -17,14 +18,21 @@ async def _async_process_new_ticket(ticket_id: int):
             logger.error(f"Ticket #{ticket_id} not found in database!")
             return
 
-        # 3. Apply mock classification values for testing the connection
-        ticket.priority = "low"
-        ticket.category = "general"
-        ticket.sentiment = "neutral"
+        # 2. Run the classification using the oMLX server wrapper
+        # We pass the ticket's subject and body
+        classification = classify_ticket(ticket.subject, ticket.body)
 
-        # 4. Save Updates
+        # 3. Update the ticket fields with the AI's findings
+        ticket.priority = classification["priority"]
+        ticket.category = classification["category"]
+        ticket.sentiment = classification["sentiment"]
+
+        # 4. Save and commit updates to Postgres
         await db.commit()
-        logger.info(f"Ticket #{ticket_id} successfully triaged with mock values.")
+        logger.info(
+            f"Ticket #{ticket_id} successfully triaged by LLM. "
+            f"Category: {ticket.category}, Priority: {ticket.priority}, Sentiment: {ticket.sentiment}"
+        )
 
 @celery_app.task(name="worker.tasks.process_new_ticket")
 def process_new_ticket(ticket_id: int):
