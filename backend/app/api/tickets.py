@@ -1,6 +1,7 @@
 from typing import Optional
 from fastapi import APIRouter, Depends, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
+from worker.tasks import process_new_ticket
 
 from app.deps import get_db, get_current_user, RoleChecker
 from app.models.user import User
@@ -17,7 +18,13 @@ async def create_ticket(
     db: AsyncSession = Depends(get_db)
 ):
     """Create a new ticket. Available to all roles."""
-    return await TicketService.create_ticket(db, current_user, ticket_in)
+    ticket = await TicketService.create_ticket(db, current_user, ticket_in)
+
+    # Dispatch bg celery task
+    #.delay() puts the job in Redis instead of running it synchonously
+    process_new_ticket.delay(ticket.id)
+
+    return ticket
 
 @router.get("", response_model=list[TicketResponse])
 async def list_tickets(
