@@ -4,6 +4,8 @@ from datetime import datetime
 from typing import Optional, TYPE_CHECKING
 if TYPE_CHECKING:
     from .message import TicketMessage
+    from .embedding import TicketEmbedding
+    from .suggestion import AISuggestion
 from sqlalchemy import BigInteger, DateTime, ForeignKey, Index, String, Text, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.db import Base
@@ -64,6 +66,21 @@ class Ticket(Base):
     # Relationships
     messages: Mapped[list[TicketMessage]] = relationship(
         "TicketMessage",
+        back_populates="ticket",
+        cascade="all, delete-orphan"
+    )
+
+    # 1-to-1 relationship for embeddings
+    embedding: Mapped[Optional[TicketEmbedding]] = relationship(
+        "TicketEmbedding",
+        back_populates="ticket",
+        uselist=False,
+        cascade="all, delete-orphan"
+    ) 
+
+    # 1-to-many relationship for sugggestions
+    suggestions: Mapped[list[AISuggestion]] = relationship(
+        "AISugggestion",
         back_populates="ticket",
         cascade="all, delete-orphan"
     )
