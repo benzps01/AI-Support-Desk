@@ -83,3 +83,11 @@ Here is a summary of the issues encountered during Phase 0 and Phase 1, their te
   }
   const decodedString = new TextDecoder("utf-8").decode(bytes);
   ```
+### 8. Celery Task Loop-Mismatch on Async Database Session
+    * **Symptom**: The first background Celery task succeeds, but subsequent tasks fail with `RuntimeError: Task got Future attached to a
+  different loop`.
+    * **Technical Cause**: The SQLAlchemy database `engine` is defined globally and caches connections in a connection pool. Async database
+  connections (`asyncpg`) are bound to the active asyncio event loop that created them. Since Celery runs each task in a new event loop via
+  `asyncio.run()`, the engine attempts to reuse connection sockets bound to a previously destroyed event loop.
+    * **Resolution**: Explicitly call `await engine.dispose()` inside a `finally` block at the end of the asynchronous worker function. This
+  closes all sockets and empties the pool, forcing the next task's event loop to create new connections cleanly.
