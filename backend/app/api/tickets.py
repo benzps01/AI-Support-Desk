@@ -64,3 +64,15 @@ async def post_message(
 ):
     """Post a new message/reply on a ticket"""
     return await TicketService.create_message(db, current_user, ticket_id, message_in)
+
+@router.get("/{ticket_id}/similar", response_model=list[TicketResponse])
+async def get_similar_tickets(
+    ticket_id: int,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Get top semantically similar resolved tickets to assist the agent.
+    Available to all roles (usually used by agents in the AI Panel).
+    """
+    return await TicketService.get_similar_resolved_tickets(db, current_user, ticket_id)

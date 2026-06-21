@@ -10,6 +10,7 @@ from app.models.message import TicketMessage
 from app.models.user import User
 from app.schemas.ticket import TicketCreate, TicketUpdate
 from app.schemas.message import MessageCreate
+from app.models.embedding import TicketEmbedding
 
 class TicketService:
     @staticmethod
@@ -145,4 +146,44 @@ class TicketService:
         await db.refresh(db_message)
         return db_message
 
-    
+    @staticmethod
+    async def get_similar_resolved_tickets(
+        db: AsyncSession,
+        user: User,
+        ticket_id: int,
+        limit: int = 3
+    ) -> list[Ticket]:
+        """
+        Retrieve the top-K resolved tickets in the same organization
+        that are semantically similar using pgvector cosine distance.
+        """
+
+        # 1. Fetch the embedding of the current ticket
+        stmt = select(TicketEmbedding).where(TicketEmbedding.ticket_id == ticket_id)
+        res = await db.execute(stmt)
+        current_embedding = res.scalars().first()
+
+        if not current_embedding:
+            # If no embedding exists for this ticket, return an empty list
+            return []
+
+        # 2. Query for similar resolved tickets in the same org
+        distance = TicketEmbedding.embedding.cosine_distance(current_embedding.embedding)
+
+        query = (
+            select(Ticket)
+            .options(selectinload(Ticket.messages)) # Preload messages to avoid N+1 queries
+            .join(TicketEmbedding)
+            .where(
+                and_(
+                    Ticket.org_id == user.org_id,
+                    Ticket.status == "resolved",
+                    Ticket.id != ticket_id
+                )
+            )
+            .order_by(distance)
+            .limit(limit)
+        )
+
+        result = await db.execute(query)
+        return list(result.scalars().all())

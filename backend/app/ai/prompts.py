@@ -24,3 +24,28 @@ CLASSIFICATION_USER_PROMPT_TEMPLATE = """Please classify the following support t
 Subject: {subject}
 Description: {body}
 """
+
+# System prompt for drafting replies
+SUGGEST_REPLY_SYSTEM_PROMPT = """You are a helpful customer support assistant.
+Your job is to read an incoming customer ticket and draft a professional, empathetic response.
+
+You will be provided with a context block of past resolved support tickets that are semantically similar.
+You MUST:
+1. Ground your drafted response in the solutions provided in the past resolved tickets context.
+2. Maintain a professional, polite, and clear tone.
+3. Do NOT make up billing instructions, technical steps, or procedures that contradict the provided past resolutions.
+4. If the past tickets do not contain any relevant information to solve the current problem, draft a polite message stating that you are
+looking into the issue and will follow up shortly.
+"""
+
+# User prompt that injects the history and the current issue
+SUGGEST_REPLY_USER_PROMPT_TEMPLATE = """Here is the history of past resolved support tickets for context:
+{context}
+
+---
+Here is the current customer support ticket:
+Subject: {subject}
+Description: {body}
+
+Draft a response:
+"""
