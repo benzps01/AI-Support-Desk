@@ -91,3 +91,20 @@ Here is a summary of the issues encountered during Phase 0 and Phase 1, their te
   `asyncio.run()`, the engine attempts to reuse connection sockets bound to a previously destroyed event loop.
     * **Resolution**: Explicitly call `await engine.dispose()` inside a `finally` block at the end of the asynchronous worker function. This
   closes all sockets and empties the pool, forcing the next task's event loop to create new connections cleanly.
+
+      ### 9. Celery Prefork GPU/Model Fork Collision (SIGSEGV)
+    * **Symptom**: The Celery task worker crashes immediately with `signal 11 (SIGSEGV)` (Segmentation Fault) right as it starts executing a
+  machine learning model.
+    * **Technical Cause**: By default, Celery uses a `prefork` pool to manage worker processes. Spawning a process via `fork()` clones the memory
+  space but does not copy active GPU/Metal hardware handles or threads initialized in the parent process. Accessing a model instance that was
+  loaded globally in the parent process at import time causes memory access violations in the child worker.
+    * **Resolution**: Implement **Lazy Initialization**. Instead of loading the model globally, initialize it inside the task function after the
+  process has forked using a lazy-loading singleton pattern.
+    
+    ### 10. macOS Sandbox Inter-Process Communication Block (MTLCompilerService)
+    * **Symptom**: Local embedding generation fails with a traceback citing: `Unable to reach MTLCompilerService. The process is unavailable...
+  Connection init failed at lookup with error 3`.
+    * **Technical Cause**: On macOS, when a process forks, the OS security sandbox blocks the child process from communicating with system
+  daemons like `MTLCompilerService` (which compiles shaders for the Apple Silicon GPU/MPS backend).
+    * **Resolution**: Force the embedding model to execute on the **CPU** rather than the GPU/MPS device (e.g., `device="cpu"` when loading
+  `SentenceTransformer`). Because embedding models are small, CPU execution is fast (under 100ms) and bypasses macOS sandboxing limits.

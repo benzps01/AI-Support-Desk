@@ -21,12 +21,15 @@ def get_embedding(text: str) -> list[float]:
     text = " ".join(text.split())
 
     try:
+        if _model is None:
+            logger.info(f"Loading local SentenceTransformer model in worker process: {settings.EMBED_MODEL}")
+            _model = SentenceTransformer(settings.EMBED_MODEL, device="cpu", trust_remote_code=True)
         # Nomic text v1.5 expects search document inputs to be prefixed with 'search_document: '
         # this helps the model distinguish query vectors from document vectors
         prefix_text = f"search_document: {text}"
 
         # generate the embedding vector
-        embedding = model.encode(prefix_text)
+        embedding = _model.encode(prefix_text)
 
         #convert the numpy array to a standard python list of floats
         embedding_list = embedding.tolist()
