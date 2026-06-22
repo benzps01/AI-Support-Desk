@@ -80,7 +80,7 @@ class Ticket(Base):
 
     # 1-to-many relationship for sugggestions
     suggestions: Mapped[list[AISuggestion]] = relationship(
-        "AISugggestion",
+        "AISuggestion",
         back_populates="ticket",
         cascade="all, delete-orphan"
     )
