@@ -14,6 +14,9 @@ from app.ai.classify import classify_ticket
 from app.ai.embeddings import get_embedding
 from app.ai.suggest import generate_suggested_reply
 
+# Import our Redis event publisher
+from app.core.events import publish_event
+
 logger = logging.getLogger(__name__)
 
 async def _async_process_new_ticket(ticket_id: int):
@@ -50,6 +53,21 @@ async def _async_process_new_ticket(ticket_id: int):
                 model=settings.LLM_MODEL
             )
             db.add(classification_suggestion)
+
+            # Flush changes so database writes columns and generated ids
+            await db.flush()
+
+            # Broadcast real-time event that the ticket classification/triage is complete
+            await publish_event(
+                channel=f"org:{customer.org_id}",
+                event_type="ticket.updated",
+                data={
+                    "ticket_id": ticket.id,
+                    "category": ticket.category,
+                    "priority": ticket.priority,
+                    "sentiment": ticket.sentiment
+                }
+            )
 
             # 3. Generate Vector Embedding
             logger.info("Generating embedding...")
@@ -89,12 +107,23 @@ async def _async_process_new_ticket(ticket_id: int):
                 model=settings.LLM_MODEL
             )
             db.add(reply_suggestion)
+            await db.flush()
+
+            # Broadcast real-time event that the AI reply suggestion is ready
+            await publish_event(
+                channel=f"org:{customer.org_id}",
+                event_type="ai.suggestion.ready",
+                data={
+                    "ticket_id": ticket.id,
+                    "suggestion_id": reply_suggestion.id
+                }
+            )
 
             # 6. Save and commit updates to Postgres
             await db.commit()
             logger.info(
-                f"Ticket #{ticket_id} successfully triaged by LLM. "
-                f"Category: {ticket.category}, Priority: {ticket.priority}, Sentiment: {ticket.sentiment}"
+                # f"Ticket #{ticket_id} successfully triaged by LLM. "
+                # f"Category: {ticket.category}, Priority: {ticket.priority}, Sentiment: {ticket.sentiment}"
                 f"Background processing successfully completed for ticket #{ticket.id}"
             )
     except Exception as e:
